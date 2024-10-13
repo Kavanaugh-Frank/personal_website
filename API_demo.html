@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Terrain Acquisition Request Example</title>
+    <link rel="icon" href="./images/logo.svg" type="image/svg+xml" />
+    <style>
+      .title {
+        text-align: center;
+      }
+      .submit-button {
+        padding: 10px 20px;
+        background-color: #0f471b; /* Green */
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+      }
+
+      .submit-button:hover {
+        background-color: #0b3e16; /* Darker green */
+      }
+
+      .back-button {
+        padding: 10px 20px;
+        background-color: #f44336; /* Red */
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+        margin-top: 10px;
+      }
+
+      .back-button:hover {
+        background-color: #d32f2f; /* Darker red */
+      }
+
+      .response {
+        margin-top: 20px;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        background-color: #f9f9f9;
+      }
+
+      .response-section {
+        margin-top: 10px;
+      }
+
+      .response-title {
+        font-weight: bold;
+        margin-bottom: 5px;
+      }
+
+      /* Input styles */
+      .input-field {
+        margin: 10px 0;
+      }
+
+      label {
+        display: inline-block;
+        margin-bottom: 5px;
+        font-weight: bold;
+      }
+
+      input[type="number"] {
+        padding: 8px;
+        width: 100%;
+        box-sizing: border-box;
+      }
+
+      /* Container for the table to enable horizontal scrolling if needed */
+      .table-container {
+        max-width: 100%;
+        overflow-x: auto;
+      }
+
+      table {
+        width: 100%;
+        max-width: 100%; /* Restrict table to screen width */
+        border-collapse: collapse;
+        margin-top: 10px;
+        table-layout: fixed; /* Ensure columns don't stretch too much */
+      }
+
+      table,
+      th,
+      td {
+        border: 1px solid black;
+      }
+
+      th,
+      td {
+        padding: 8px;
+        text-align: center;
+      }
+
+      /* Image Showcase Section */
+      .image-showcase {
+        display: flex; /* Use flexbox to arrange images side by side */
+        justify-content: space-between; /* Space out the images evenly */
+        margin-top: 20px;
+      }
+
+      .image-showcase img {
+        max-width: 30%; /* Restrict image width to keep them side by side */
+        border-radius: 5px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        height: auto; /* Maintain aspect ratio */
+      }
+    </style>
+  </head>
+  <body>
+    <h1 class="title">Automatic Terrain Acquisition Demo</h1>
+    <h4 class="title">
+      For this demo, users can only choose values within specified constraints:
+      the lower latitude must be between 36.1 and 37, and the lower longitude
+      must be between -82 and -81.1, with the number of X and Y slices limited
+      to below 15.
+    </h4>
+    <!-- Input Fields -->
+    <div class="input-field">
+      <label for="lower_lat"
+        >Lower Latitude (must be between 36.1 and 37):</label
+      >
+      <input type="number" id="lower_lat" step="0.01" value="36.5" />
+    </div>
+
+    <div class="input-field">
+      <label for="lower_long"
+        >Lower Longitude (must be between -82 and -81.1):</label
+      >
+      <input type="number" id="lower_long" step="0.01" value="-81.9" />
+    </div>
+
+    <div class="input-field">
+      <label for="num_x_slice">Number of X slices (must be below 15):</label>
+      <input type="number" id="num_x_slice" min="1" max="14" value="14" />
+    </div>
+
+    <div class="input-field">
+      <label for="num_y_slice">Number of Y slices (must be below 15):</label>
+      <input type="number" id="num_y_slice" min="1" max="14" value="14" />
+    </div>
+
+    <!-- Submit button -->
+    <button class="submit-button" id="postButton">Send POST Request</button>
+
+    <!-- Back button -->
+    <button class="back-button" onclick="window.location.href='/'">
+      Back to Home
+    </button>
+
+    <!-- Image Showcase Section -->
+    <div class="image-showcase">
+      <img src="./images/0.1Size30px.png" alt="Elevation Figure 1" />
+      <img src="./images/0.1Size150px.png" alt="Elevation Figure 2" />
+      <img src="./images/0.1Size300px.png" alt="Elevation Figure 3" />
+    </div>
+    <h4 class="title">
+      Please note that the displayed figures are not representative of the user
+      input; they are provided as examples only to illustrate the interpolation done on the elevation data.
+    </h4>
+
+    <!-- Response container -->
+    <div class="response" id="responseContainer"></div>
+
+    <script>
+      document
+        .getElementById("postButton")
+        .addEventListener("click", function () {
+          // Get values from the input fields
+          const lowerLat = parseFloat(
+            document.getElementById("lower_lat").value
+          );
+          const lowerLong = parseFloat(
+            document.getElementById("lower_long").value
+          );
+          const numXSlices = parseInt(
+            document.getElementById("num_x_slice").value
+          );
+          const numYSlices = parseInt(
+            document.getElementById("num_y_slice").value
+          );
+
+          // Ensure lowerLat is between 36.1 and 37
+          if (
+            lowerLat < 36.1 ||
+            lowerLat > 37 ||
+            lowerLong < -82 ||
+            lowerLong > -81.1
+          ) {
+            alert(
+              "Lower latitude must be between 36.1 and 37, and lower longitude must be between -82 and -81.1."
+            );
+            return;
+          }
+
+          // Ensure numXSlices and numYSlices are below 15
+          if (numXSlices >= 15 || numYSlices >= 15) {
+            alert("The number of X and Y slices must be below 15.");
+            return;
+          }
+
+          // Create the data object for the POST request
+          const data = {
+            upper_lat: 37,
+            lower_lat: lowerLat,
+            upper_long: -82,
+            lower_long: lowerLong,
+            num_x_slice: numXSlices,
+            num_y_slice: numYSlices,
+          };
+
+          // Send the POST request
+          fetch("/api/process_coordinates", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(data),
+          })
+            .then((response) => {
+              if (!response.ok) {
+                throw new Error("Network response was not ok");
+              }
+              return response.json();
+            })
+            .then((data) => {
+              let { data: responseData, shape } = data;
+
+              if (typeof responseData === "string") {
+                responseData = JSON.parse(responseData);
+              }
+
+              // Create a table for the responseData (2D array)
+              let tableHTML = '<div class="table-container"><table>';
+              responseData.forEach((row) => {
+                tableHTML += "<tr>";
+                row.forEach((value) => {
+                  tableHTML += `<td>${value}</td>`;
+                });
+                tableHTML += "</tr>";
+              });
+              tableHTML += "</table></div>";
+
+              // Display 'data' (formatted as table) and 'shape' (as plain text)
+              document.getElementById("responseContainer").innerHTML = `
+                    <div class="response-section">
+                        <div class="response-title">Data (Table):</div>
+                        ${tableHTML}
+                    </div>
+                    <div class="response-section">
+                        <div class="response-title">Shape:</div>
+                        <div>${JSON.stringify(shape)}</div>
+                    </div>
+                `;
+            })
+            .catch((error) => {
+              console.error("Error:", error);
+              document.getElementById(
+                "responseContainer"
+              ).innerHTML = `<strong>Error:</strong> ${error.message}`;
+            });
+        });
+    </script>
+  </body>
+</html>
